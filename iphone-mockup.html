@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Мокап генератор</title>
+<style>
+  body {
+    font-family: sans-serif;
+    background: #222;
+    color: #ddd;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+  }
+  #previewWrapper {
+    position: relative;
+    width: 234,5px; /* половина от 938 */
+    height: 479px; /* половина от 1916 */
+  }
+  canvas {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+  }
+  button, input {
+    background: #333;
+    color: #eee;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  button:hover, input:hover {
+    background: #444;
+  }
+</style>
+</head>
+<body>
+  <h2>Генератор мокапа iPhone</h2>
+  <p>Выбери скриншот, и сохрани картинку через правую кнопку</p>
+  <input type="file" id="screenshotInput" accept="image/*">
+  <div id="previewWrapper">
+    <canvas id="canvas" width="938" height="1916"></canvas>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const input = document.getElementById('screenshotInput');
+
+    const phoneOverlay = new Image();
+    phoneOverlay.src = 'iphone-17-pro-max.png'; // должен лежать рядом
+
+    const screenshot = new Image();
+    let screenshotLoaded = false;
+    let overlayLoaded = false;
+
+    phoneOverlay.onload = () => {
+      overlayLoaded = true;
+      draw();
+    };
+
+    input.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        screenshot.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    screenshot.onload = () => {
+      screenshotLoaded = true;
+      draw();
+      downloadBtn.disabled = false;
+    };
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (screenshotLoaded) {
+        // Параметры области под скриншот
+        const x = 46;
+        const y = 42;
+        const w = 846;
+        const h = 1838;
+        const r = 102;
+
+        // Маска со скруглением
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+        ctx.clip();
+
+        ctx.drawImage(screenshot, x, y, w, h);
+        ctx.restore();
+      }
+
+      if (overlayLoaded) {
+        ctx.drawImage(phoneOverlay, 0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    downloadBtn.addEventListener('click', () => {
+      // Перерисовываем финальную картинку в скрытый оригинальный размер
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = 938;
+      tempCanvas.height = 1916;
+      const tctx = tempCanvas.getContext('2d');
+
+      if (screenshotLoaded) {
+        const x = 46;
+        const y = 42;
+        const w = 846;
+        const h = 1838;
+        const r = 102;
+
+        tctx.save();
+        tctx.beginPath();
+        tctx.moveTo(x + r, y);
+        tctx.lineTo(x + w - r, y);
+        tctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        tctx.lineTo(x + w, y + h - r);
+        tctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        tctx.lineTo(x + r, y + h);
+        tctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        tctx.lineTo(x, y + r);
+        tctx.quadraticCurveTo(x, y, x + r, y);
+        tctx.closePath();
+        tctx.clip();
+
+        tctx.drawImage(screenshot, x, y, w, h);
+        tctx.restore();
+      }
+
+      if (overlayLoaded) {
+        tctx.drawImage(phoneOverlay, 0, 0, 938, 1916);
+      }
+
+      // Сохраняем
+      const link = document.createElement('a');
+      link.download = 'mockup.png';
+      link.href = tempCanvas.toDataURL('image/png');
+      link.click();
+    });
+  </script>
+</body>
+</html>
