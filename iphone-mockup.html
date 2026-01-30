@@ -33,12 +33,11 @@
     border-radius: 6px;
     cursor: pointer;
   }
-  button:hover, input:hover {
-    background: #444;
-  }
-  button:disabled {
-    opacity: 0.5;
-    cursor: default;
+  label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
   }
 </style>
 </head>
@@ -47,6 +46,12 @@
 <h2>iPhone mockup generator</h2>
 
 <input type="file" id="screenshotInput" accept="image/*">
+
+<label>
+  <input type="checkbox" id="proportionsToggle" checked>
+  Save proportions
+</label>
+
 <button id="downloadBtn" disabled>Download image</button>
 
 <div id="previewWrapper">
@@ -58,10 +63,10 @@
   const ctx = canvas.getContext('2d');
   const downloadBtn = document.getElementById('downloadBtn');
   const input = document.getElementById('screenshotInput');
+  const proportionsToggle = document.getElementById('proportionsToggle');
 
   const phoneOverlay = new Image();
-  phoneOverlay.crossOrigin = "anonymous";
-  phoneOverlay.src = 'iphone-17-pro-max.png'; // файл рядом
+  phoneOverlay.src = 'iphone-17-pro-max.png';
 
   const screenshot = new Image();
   let screenshotLoaded = false;
@@ -77,43 +82,64 @@
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = ev => {
-      screenshot.src = ev.target.result;
-    };
+    reader.onload = ev => screenshot.src = ev.target.result;
     reader.readAsDataURL(file);
   });
 
   screenshot.onload = () => {
     screenshotLoaded = true;
-    draw();
     downloadBtn.disabled = false;
+    draw();
   };
+
+  proportionsToggle.addEventListener('change', draw);
+
+  function drawImage(ctx, img, x, y, w, h, keepRatio) {
+    if (!keepRatio) {
+      ctx.drawImage(img, x, y, w, h);
+      return;
+    }
+
+    const scale = w / img.width;
+    const srcHeight = Math.min(img.height, h / scale);
+
+    ctx.drawImage(
+      img,
+      0,
+      0,
+      img.width,
+      srcHeight,
+      x,
+      y,
+      w,
+      srcHeight * scale
+    );
+  }
+
+  function clipPhone(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.clip();
+  }
 
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (screenshotLoaded) {
-      const x = 46;
-      const y = 42;
-      const w = 846;
-      const h = 1838;
-      const r = 102;
+      const x = 46, y = 42, w = 846, h = 1838, r = 102;
 
       ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.lineTo(x + w - r, y);
-      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-      ctx.lineTo(x + w, y + h - r);
-      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-      ctx.lineTo(x + r, y + h);
-      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-      ctx.lineTo(x, y + r);
-      ctx.quadraticCurveTo(x, y, x + r, y);
-      ctx.closePath();
-      ctx.clip();
-
-      ctx.drawImage(screenshot, x, y, w, h);
+      clipPhone(ctx, x, y, w, h, r);
+      drawImage(ctx, screenshot, x, y, w, h, proportionsToggle.checked);
       ctx.restore();
     }
 
@@ -129,27 +155,11 @@
     const tctx = tempCanvas.getContext('2d');
 
     if (screenshotLoaded) {
-      const x = 46;
-      const y = 42;
-      const w = 846;
-      const h = 1838;
-      const r = 102;
+      const x = 46, y = 42, w = 846, h = 1838, r = 102;
 
       tctx.save();
-      tctx.beginPath();
-      tctx.moveTo(x + r, y);
-      tctx.lineTo(x + w - r, y);
-      tctx.quadraticCurveTo(x + w, y, x + w, y + r);
-      tctx.lineTo(x + w, y + h - r);
-      tctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-      tctx.lineTo(x + r, y + h);
-      tctx.quadraticCurveTo(x, y + h, x, y + h - r);
-      tctx.lineTo(x, y + r);
-      tctx.quadraticCurveTo(x, y, x + r, y);
-      tctx.closePath();
-      tctx.clip();
-
-      tctx.drawImage(screenshot, x, y, w, h);
+      clipPhone(tctx, x, y, w, h, r);
+      drawImage(tctx, screenshot, x, y, w, h, proportionsToggle.checked);
       tctx.restore();
     }
 
@@ -160,12 +170,9 @@
     const link = document.createElement('a');
     link.download = 'mockup.png';
     link.href = tempCanvas.toDataURL('image/png');
-    document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
   });
 </script>
 
 </body>
 </html>
-
