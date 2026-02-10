@@ -39,6 +39,23 @@
     gap: 6px;
     cursor: pointer;
   }
+  .chips {
+    display: flex;
+    gap: 6px;
+  }
+  .chip input {
+    display: none;
+  }
+  .chip span {
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: #333;
+    cursor: pointer;
+    user-select: none;
+  }
+  .chip input:checked + span {
+    background: #555;
+  }
 </style>
 </head>
 <body>
@@ -51,6 +68,21 @@
   <input type="checkbox" id="proportionsToggle" checked>
   Save proportions
 </label>
+
+<div class="chips">
+  <label class="chip">
+    <input type="radio" name="color" value="orange" checked>
+    <span>Orange</span>
+  </label>
+  <label class="chip">
+    <input type="radio" name="color" value="dark-blue">
+    <span>Dark blue</span>
+  </label>
+  <label class="chip">
+    <input type="radio" name="color" value="silver">
+    <span>Silver</span>
+  </label>
+</div>
 
 <button id="downloadBtn" disabled>Download image</button>
 
@@ -66,16 +98,34 @@
   const proportionsToggle = document.getElementById('proportionsToggle');
 
   const phoneOverlay = new Image();
-  phoneOverlay.src = 'iphone-17-pro-max.png';
+  let overlayLoaded = false;
 
   const screenshot = new Image();
   let screenshotLoaded = false;
-  let overlayLoaded = false;
+
+  const overlays = {
+    'orange': 'iphone-17-pro-max__orange.png',
+    'dark-blue': 'iphone-17-pro-max__dark-blue.png',
+    'silver': 'iphone-17-pro-max__silver.png'
+  };
+
+  function setOverlay(color) {
+    overlayLoaded = false;
+    phoneOverlay.src = overlays[color];
+  }
 
   phoneOverlay.onload = () => {
     overlayLoaded = true;
     draw();
   };
+
+  setOverlay('orange');
+
+  document.querySelectorAll('input[name="color"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      setOverlay(radio.value);
+    });
+  });
 
   input.addEventListener('change', e => {
     const file = e.target.files[0];
@@ -136,7 +186,6 @@
 
     if (screenshotLoaded) {
       const x = 46, y = 42, w = 846, h = 1838, r = 102;
-
       ctx.save();
       clipPhone(ctx, x, y, w, h, r);
       drawImage(ctx, screenshot, x, y, w, h, proportionsToggle.checked);
@@ -156,7 +205,6 @@
 
     if (screenshotLoaded) {
       const x = 46, y = 42, w = 846, h = 1838, r = 102;
-
       tctx.save();
       clipPhone(tctx, x, y, w, h, r);
       drawImage(tctx, screenshot, x, y, w, h, proportionsToggle.checked);
