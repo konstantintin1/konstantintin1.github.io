@@ -128,8 +128,7 @@ button:disabled { opacity: 0.5; filter: grayscale(1); }
 
 <script src="tasks.js"></script>
 <script>
-// Загрузка настроек вибрации
-let settings = JSON.parse(localStorage.getItem('ed_settings') || '{"vibration": true}');
+
 let level = 1, lives = 3, maxBaseLives = 3, extraLives = 0, coins = 0;
 let stats = { kills: 0, correct: 0, wrong: 0 };
 let map = [], connections = {}, available = [], currentNode = null, heroPos = "0-0", playerEmoji = "🤠";
@@ -337,12 +336,6 @@ function handleBattleAnswer(btn, isCorrect) {
         stats.wrong++; btn.style.background = "#ef4444";
         showFlash();
 
-        // --- ДОБАВИТЬ ЭТОТ БЛОК ---
-        if (settings.vibration && navigator.vibrate) {
-            navigator.vibrate(200); // Вибрировать 200мс
-        }
-        // -------------------------
-
         if (extraLives > 0) extraLives--; else lives--;
         document.getElementById("playerSprite").classList.add("shake-anim");
         updateUI();
@@ -422,41 +415,11 @@ function showMenu() {
     h.innerHTML = `<div class="popup"><div class="popupBox">
         <h2 style="margin-top:0">ПАУЗА</h2>
         <button onclick="this.closest('.popup').remove()" style="margin-bottom:10px;">Продолжить</button>
-        <button onclick="showSettings()" style="margin-bottom:10px; background:#475569;">⚙️ Настройки</button>
         <button onclick="showLeaderboard()" style="margin-bottom:10px; background:#fbbf24; color:#000;">🏆 Лидеры</button>
         <button onclick="restartGame()" style="background:#ef4444;">Начать заново</button>
     </div></div>`;
 }
 
-function showSettings() {
-    const h = document.getElementById("popupHolder");
-    h.innerHTML = `<div class="popup"><div class="popupBox">
-        <h2>НАСТРОЙКИ</h2>
-        <div style="margin: 20px 0; display: flex; justify-content: space-between; align-items: center;">
-            <span>Вибрация</span>
-            <button onclick="toggleVibration()" style="width: 100px; background: ${settings.vibration ? '#10b981' : '#ef4444'}">
-                ${settings.vibration ? 'ВКЛ' : 'ВЫКЛ'}
-            </button>
-        </div>
-        <button onclick="showMenu()">Назад</button>
-    </div></div>`;
-}
-
-function toggleVibration() {
-    settings.vibration = !settings.vibration;
-    localStorage.setItem('ed_settings', JSON.stringify(settings));
-    
-    // Проверка поддержки и тест
-    if (settings.vibration) {
-        if (!navigator.vibrate) {
-            alert("Твой браузер или телефон вообще не поддерживает вибрацию (привет от Apple или старого Android)");
-        } else {
-            navigator.vibrate(50); // Короткий тестовый виброотклик
-        }
-    }
-    
-    showSettings();
-}
 
 function showLeaderboard() {
     const scores = JSON.parse(localStorage.getItem('ed_scores') || '[]');
