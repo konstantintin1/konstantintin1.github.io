@@ -445,7 +445,17 @@ function showSettings() {
 function toggleVibration() {
     settings.vibration = !settings.vibration;
     localStorage.setItem('ed_settings', JSON.stringify(settings));
-    showSettings(); // Перерисовать
+    
+    // Проверка поддержки и тест
+    if (settings.vibration) {
+        if (!navigator.vibrate) {
+            alert("Твой браузер или телефон вообще не поддерживает вибрацию (привет от Apple или старого Android)");
+        } else {
+            navigator.vibrate(50); // Короткий тестовый виброотклик
+        }
+    }
+    
+    showSettings();
 }
 
 function showLeaderboard() {
