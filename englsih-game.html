@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>English Dungeon: Mobile Pro</title>
+<style>
+/* Базовые стили */
+html, body { height: 100%; margin: 0; overflow: hidden; background: #020617; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; color: white; display: flex; justify-content: center; align-items: center; box-sizing: border-box; }
+
+.game { 
+    width: 100%; max-width: 1150px; height: 100%; background: #1e293b; 
+    display: flex; flex-direction: column; position: relative; 
+    border-left: 1px solid #334155; border-right: 1px solid #334155;
+}
+
+/* Верхняя панель */
+.top { 
+    display: flex; justify-content: space-between; align-items: center; padding: 10px 15px;
+    background: #0f172a; border-bottom: 1px solid #334155; z-index: 10;
+}
+.logo { font-size: 16px; font-weight: 700; color: #fbbf24; text-align: center; flex: 1; }
+.coin-count { font-size: 18px; color: #fbbf24; font-weight: bold; min-width: 70px; text-align: right; transition: transform 0.2s; }
+.menu-btn { background: #1e293b; padding: 6px 12px; border-radius: 8px; color: #38bdf8; font-size: 12px; font-weight: bold; border: 1px solid #334155; cursor: pointer; flex:1; }
+
+/* Карта */
+.mapWrap { 
+    position: relative; height: 350px; background: #0f172a; overflow-x: auto; 
+    border-bottom: 2px solid #334155; -webkit-overflow-scrolling: touch;
+}
+#mapScrollContainer { position: relative; width: 1050px; height: 100%; }
+svg { position: absolute; width: 100%; height: 100%; pointer-events: none; }
+
+.node { 
+    position: absolute; width: 50px; height: 50px; border-radius: 12px; background: #1e293b; 
+    display: flex; align-items: center; justify-content: center; font-size: 24px; 
+    cursor: pointer; z-index: 2; transition: 0.2s; border: 2px solid #475569; 
+}
+.node.available { border-color: #38bdf8; box-shadow: 0 0 15px rgba(56, 189, 248, 0.4); }
+.node.done { background: #064e3b; border-color: #10b981; opacity: 0.6; }
+.hero-icon { position: absolute; font-size: 30px; transition: all .5s cubic-bezier(0.34, 1.56, 0.64, 1); pointer-events: none; z-index: 3; }
+
+/* Боевая зона */
+.stage { flex: 1; display: flex; flex-direction: column; background: #020617; padding: 15px; position: relative; overflow-y: auto; }
+.actors-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; min-height: 100px; }
+.actor { display: flex; flex-direction: column; align-items: center; width: 35%; }
+.actor-hearts { font-size: 14px; margin-bottom: 5px; min-height: 20px; }
+.actor-sprite { font-size: 50px; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.5)); }
+#battleDivider { font-size: 30px; opacity: 0.8; animation: pulse 1s infinite alternate; }
+
+@keyframes pulse { from { transform: scale(0.9); opacity: 0.5; } to { transform: scale(1.1); opacity: 1; } }
+
+#interactionArea { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.answers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; width: 100%; }
+@media (max-width: 400px) { .answers { grid-template-columns: 1fr; } }
+
+/* Попапы и Скорборд */
+.popup { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(4px); padding: 20px; }
+.popupBox { background: #1e293b; padding: 25px; border-radius: 20px; width: 100%; max-width: 400px; text-align: center; border: 2px solid #475569; max-height: 90vh; overflow-y: auto; }
+.score-row { display: flex; align-items: center; justify-content: space-between; background: #0f172a; padding: 12px; border-radius: 12px; margin-bottom: 8px; font-size: 13px; border: 1px solid #334155; }
+
+input { background: #0f172a; border: 1px solid #334155; color: white; padding: 14px; border-radius: 10px; width: 100%; margin: 15px 0; box-sizing: border-box; font-size: 16px; text-align: center; }
+button { padding: 14px 10px; border: none; border-radius: 12px; background: #334155; color: white; cursor: pointer; font-size: 15px; font-weight: bold; border-bottom: 4px solid #1e293b; width: 100%; transition: 0.1s; }
+button:active { transform: translateY(2px); border-bottom-width: 2px; }
+button:disabled { opacity: 0.5; filter: grayscale(1); }
+
+.char-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+.char-card { background: #0f172a; padding: 20px; border-radius: 20px; border: 2px solid #334155; cursor: pointer; transition: all 0.2s; }
+.char-card:hover { border-color: #38bdf8; transform: translateY(-5px); background: #1e293b; }
+.char-card span { font-size: 50px; display: block; margin-bottom: 10px; }
+
+.shake-anim { animation: shake 0.3s; }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+.flash-red { position: fixed; inset: 0; background: rgba(220, 38, 38, 0.4); pointer-events: none; z-index: 3000; animation: flashFade 0.5s forwards; }
+@keyframes flashFade { 0% { opacity: 1; } 100% { opacity: 0; } }
+</style>
+</head>
+<body>
+
+<div id="selectionScreen" class="popup" style="display: none;">
+    <div class="popupBox">
+        <h2 style="margin:0; color:#fbbf24;">ВЫБЕРИ ГЕРОЯ</h2>
+        <div class="char-grid">
+            <div class="char-card" onclick="selectHero('🤠')"><span>🤠</span>Странник</div>
+            <div class="char-card" onclick="selectHero('🧙')"><span>🧙</span>Маг</div>
+            <div class="char-card" onclick="selectHero('🐱‍👤')"><span>🐱‍👤</span>Ниндзя</div>
+            <div class="char-card" onclick="selectHero('🧝‍♂️')"><span>🧝‍♂️</span>Лучник</div>
+        </div>
+    </div>
+</div>
+
+<div class="game">
+    <div class="top">
+        <button class="menu-btn" onclick="showMenu()">МЕНЮ</button>
+        <div class="logo">DUNGEON <span id="levelNum">1</span></div>
+        <div class="coin-count" id="coinCounter">💰 <span id="coins">0</span></div>
+    </div>
+    
+    <div class="mapWrap" id="mapWrap">
+        <div id="mapScrollContainer">
+            <svg id="lines"></svg>
+            <div id="nodes"></div>
+            <div id="heroIcon" class="hero-icon">🤠</div>
+        </div>
+    </div>
+
+    <div class="stage">
+        <div class="actors-row">
+            <div class="actor">
+                <div id="playerHearts" class="actor-hearts"></div>
+                <div class="actor-sprite" id="playerSprite">🤠</div>
+            </div>
+            <div id="battleDivider" style="visibility: hidden;">⚔️</div>
+            <div class="actor" id="enemySide" style="visibility: hidden;">
+                <div id="enemyHearts" class="actor-hearts"></div>
+                <div class="actor-sprite" id="enemySprite">👹</div>
+            </div>
+        </div>
+        
+        <div id="interactionArea">
+            <p style="color:#64748b;">Выберите комнату на карте...</p>
+        </div>
+    </div>
+    <div id="popupHolder"></div>
+</div>
+
+<script src="tasks.js"></script>
+<script>
+// Загрузка настроек вибрации
+let settings = JSON.parse(localStorage.getItem('ed_settings') || '{"vibration": true}');
+let level = 1, lives = 3, maxBaseLives = 3, extraLives = 0, coins = 0;
+let stats = { kills: 0, correct: 0, wrong: 0 };
+let map = [], connections = {}, available = [], currentNode = null, heroPos = "0-0", playerEmoji = "🤠";
+let enemyQuestions = 0, isBossNode = false;
+let usedQuestions = new Set();
+
+window.onload = () => {
+    if (localStorage.getItem('ed_save')) loadGame();
+    else document.getElementById("selectionScreen").style.display = "flex";
+};
+
+function saveGame() {
+    const saveData = { level, lives, maxBaseLives, extraLives, coins, stats, map, connections, available, currentNode, heroPos, playerEmoji };
+    localStorage.setItem('ed_save', JSON.stringify(saveData));
+}
+
+function loadGame() {
+    const data = JSON.parse(localStorage.getItem('ed_save'));
+    Object.assign(window, data);
+    document.getElementById("heroIcon").textContent = playerEmoji;
+    document.getElementById("playerSprite").textContent = playerEmoji;
+    updateUI();
+    renderMap();
+    centerHero();
+}
+
+function selectHero(emoji) {
+    playerEmoji = emoji;
+    document.getElementById("heroIcon").textContent = emoji;
+    document.getElementById("playerSprite").textContent = emoji;
+    document.getElementById("selectionScreen").style.display = "none";
+    generateMap();
+    saveGame();
+}
+
+function generateMap() {
+    map = []; connections = {};
+    const rows = 3, cols = 6;
+    map.push([{type: "start", done: false}]);
+    const weights = ["enemy", "enemy", "enemy", "chest", "camp", "merchant"];
+    for (let c = 1; c < cols - 1; c++) {
+        const column = [];
+        for (let r = 0; r < rows; r++) column.push({ type: weights[Math.floor(Math.random() * weights.length)], done: false });
+        if (!column.some(n => n.type === "enemy")) column[Math.floor(Math.random() * rows)].type = "enemy";
+        map.push(column);
+    }
+    map.push([{type: "exit", done: false}]);
+    connections["0-0"] = [];
+    for (let r = 0; r < rows; r++) connections["0-0"].push("1-" + r);
+    for (let c = 1; c < cols - 1; c++) {
+        for (let r = 0; r < rows; r++) {
+            const key = c + "-" + r; connections[key] = [];
+            if (c === cols - 2) connections[key].push((c + 1) + "-0");
+            else {
+                const targets = [r]; if (r > 0) targets.push(r - 1); if (r < rows - 1) targets.push(r + 1);
+                const shuffledTargets = [...targets].sort(() => Math.random() - 0.5);
+                for (let i = 0; i < (Math.random() < 0.5 ? 1 : 2); i++) connections[key].push((c + 1) + "-" + shuffledTargets[i]);
+            }
+        }
+    }
+    available = ["0-0"]; heroPos = "0-0"; renderMap();
+    setTimeout(() => { enterRoom("0-0"); centerHero(); }, 200);
+}
+
+function renderMap() {
+    const nodesDiv = document.getElementById("nodes"); const svg = document.getElementById("lines");
+    nodesDiv.innerHTML = ""; svg.innerHTML = "";
+    const mapW = 1000, mapH = 220;
+    const colGap = mapW / (map.length - 1), rowGap = mapH / 2;
+    const pos = {};
+
+    map.forEach((col, c) => { 
+        col.forEach((node, r) => { 
+            const y = col.length === 1 ? mapH / 2 : r * rowGap; 
+            pos[c + "-" + r] = { x: c * colGap + 25, y: y + 20 }; 
+        }); 
+    });
+
+    for (const from in connections) {
+        connections[from].forEach(to => {
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", pos[from].x + 25); line.setAttribute("y1", pos[from].y + 25);
+            line.setAttribute("x2", pos[to].x + 25); line.setAttribute("y2", pos[to].y + 25);
+            line.setAttribute("stroke", "#334155"); line.setAttribute("stroke-width", "3");
+            svg.appendChild(line);
+        });
+    }
+
+    for (const key in pos) {
+        const [c, r] = key.split("-").map(Number); const node = map[c][r];
+        const d = document.createElement("div");
+        d.className = "node" + (node.done ? " done" : "") + (available.includes(key) ? " available" : "");
+        d.style.left = pos[key].x + "px"; d.style.top = pos[key].y + "px";
+        const icons = { start:"🚪", enemy:"⚔️", chest:"🧰", camp:"🔥", merchant:"🛒", exit:"🐲" };
+        d.textContent = icons[node.type]; d.onclick = () => enterRoom(key);
+        nodesDiv.appendChild(d);
+    }
+    const hi = document.getElementById("heroIcon"); 
+    hi.style.left = (pos[heroPos].x + 10) + "px"; hi.style.top = (pos[heroPos].y - 35) + "px";
+}
+
+function centerHero() {
+    const wrap = document.getElementById("mapWrap");
+    const hi = document.getElementById("heroIcon");
+    const targetX = parseInt(hi.style.left) - wrap.offsetWidth / 2 + 25;
+    wrap.scrollTo({ left: targetX, behavior: 'smooth' });
+}
+
+function enterRoom(key) {
+    if (!available.includes(key)) return;
+    heroPos = key; currentNode = key; const [c, r] = key.split("-").map(Number); const node = map[c][r];
+    node.done = true; available = []; 
+    document.getElementById("enemySide").style.visibility = "hidden";
+    document.getElementById("battleDivider").style.visibility = "hidden";
+    isBossNode = (node.type === "exit");
+    usedQuestions.clear();
+    if (node.type === "start") finishRoom();
+    else if (node.type === "enemy" || isBossNode) startBattle();
+    else if (node.type === "chest") openChest();
+    else if (node.type === "camp") visitCamp();
+    else if (node.type === "merchant") visitMerchant();
+    saveGame(); renderMap(); centerHero();
+}
+
+function startBattle() {
+    enemyQuestions = isBossNode ? 6 : 3;
+    document.getElementById("enemySide").style.visibility = "visible";
+    document.getElementById("battleDivider").style.visibility = "visible";
+    document.getElementById("enemySprite").textContent = isBossNode ? "🐲" : "👹";
+    updateUI();
+    nextBattleQuestion();
+}
+
+function nextBattleQuestion() {
+    let type = Math.floor(Math.random() * 3);
+    let qText = "", qTitle = "", correctAnswer = "", answers = [], qUID = "";
+    for(let i=0; i<30; i++) {
+        if (type === 0) {
+            const keys = Object.keys(tasksDB.verbs);
+            const verbKey = keys[Math.floor(Math.random() * keys.length)];
+            const isV3 = Math.random() > 0.5;
+            correctAnswer = isV3 ? tasksDB.verbs[verbKey].v3 : tasksDB.verbs[verbKey].v2;
+            qUID = "v_" + verbKey + (isV3 ? "3" : "2");
+            if (!usedQuestions.has(qUID)) {
+                qTitle = isV3 ? "Form V3:" : "Form V2:"; qText = verbKey.toUpperCase();
+                answers = isV3 ? tasksDB.verbs[verbKey].optionsV3 : tasksDB.verbs[verbKey].optionsV2; break;
+            }
+        } else if (type === 1) {
+            const idx = Math.floor(Math.random() * tasksDB.sentences.length);
+            qUID = "s_" + idx;
+            if (!usedQuestions.has(qUID)) {
+                qTitle = "Fill in:"; qText = tasksDB.sentences[idx].text.replace("___", "_____");
+                correctAnswer = tasksDB.sentences[idx].answer; answers = tasksDB.sentences[idx].options; break;
+            }
+        } else {
+            const idx = Math.floor(Math.random() * tasksDB.dialogues.length);
+            qUID = "d_" + idx;
+            if (!usedQuestions.has(qUID)) {
+                qTitle = "Response:"; qText = tasksDB.dialogues[idx].q;
+                correctAnswer = tasksDB.dialogues[idx].answer; answers = tasksDB.dialogues[idx].options; break;
+            }
+        }
+        type = (type + 1) % 3;
+    }
+    usedQuestions.add(qUID);
+    const area = document.getElementById("interactionArea");
+    area.innerHTML = `
+        <div style="font-size:11px; color:${isBossNode ? '#ef4444' : '#38bdf8'}; font-weight:bold; margin-bottom:5px;">${isBossNode ? 'BOSS BATTLE' : 'ENCOUNTER'}</div>
+        <div style="font-size:14px; opacity:0.8;">${qTitle}</div>
+        <div style="font-size:20px; color:#fbbf24; margin:10px 0; font-weight:bold;">${qText}</div>
+        <div class="answers"></div>`;
+    
+    [...answers].sort(() => Math.random() - 0.5).forEach(a => {
+        const b = document.createElement("button"); b.textContent = a;
+        b.onclick = () => handleBattleAnswer(b, a === correctAnswer);
+        area.querySelector(".answers").appendChild(b);
+    });
+}
+
+function handleBattleAnswer(btn, isCorrect) {
+    document.querySelectorAll(".answers button").forEach(b => b.disabled = true);
+    if (isCorrect) {
+        stats.correct++; enemyQuestions--;
+        btn.style.background = "#10b981";
+        document.getElementById("enemySprite").classList.add("shake-anim");
+        
+        if(enemyQuestions <= 0) {
+            stats.kills++; 
+            const gain = isBossNode ? 200 : 50;
+            coins += gain;
+            updateUI(); // Обновляем счетчик сразу!
+            setTimeout(() => {
+                document.getElementById("enemySprite").classList.remove("shake-anim");
+                if(isBossNode) showBossVictory();
+                else showSimplePopup("Победа!", `+${gain} монет.`, "ОК");
+            }, 500);
+        } else {
+            updateUI();
+            setTimeout(() => {
+                document.getElementById("enemySprite").classList.remove("shake-anim");
+                nextBattleQuestion();
+            }, 500);
+        }
+    } else {
+        stats.wrong++; btn.style.background = "#ef4444";
+        showFlash();
+
+        // --- ДОБАВИТЬ ЭТОТ БЛОК ---
+        if (settings.vibration && navigator.vibrate) {
+            navigator.vibrate(200); // Вибрировать 200мс
+        }
+        // -------------------------
+
+        if (extraLives > 0) extraLives--; else lives--;
+        document.getElementById("playerSprite").classList.add("shake-anim");
+        updateUI();
+        setTimeout(() => {
+            document.getElementById("playerSprite").classList.remove("shake-anim");
+            if(lives <= 0) showGameOver(); else nextBattleQuestion();
+        }, 500);
+    }
+}
+
+function showFlash() { 
+    const f = document.createElement("div"); f.className = "flash-red"; 
+    document.body.appendChild(f); setTimeout(() => f.remove(), 500); 
+}
+
+function updateUI() {
+    document.getElementById("coins").textContent = coins;
+    document.getElementById("levelNum").textContent = level;
+    let ph = ""; for(let i=1; i<=maxBaseLives; i++) ph += (i <= lives) ? "❤️" : "🤍";
+    for(let i=0; i<extraLives; i++) ph += "💛";
+    document.getElementById("playerHearts").innerHTML = ph;
+    let eh = ""; for(let i=0; i<enemyQuestions; i++) eh += (isBossNode ? "🔥" : "💜");
+    document.getElementById("enemyHearts").innerHTML = eh;
+}
+
+function finishRoom() { 
+    document.getElementById("enemySide").style.visibility = "hidden"; 
+    document.getElementById("battleDivider").style.visibility = "hidden";
+    document.getElementById("interactionArea").innerHTML = `<p style="color:#64748b; font-style:italic;">Путь свободен...</p>`; 
+    available = connections[currentNode] || []; 
+    saveGame(); renderMap(); 
+}
+
+function openChest() { 
+    coins += 30; updateUI(); 
+    showSimplePopup("Сундук", "Вы нашли 30 золота!", "Взять"); 
+}
+
+function visitCamp() { 
+    lives = Math.min(lives + 1, maxBaseLives); updateUI(); 
+    showSimplePopup("Костер", "Вы отдохнули (+1 ❤️).", "В путь"); 
+}
+
+function visitMerchant() {
+    const area = document.getElementById("interactionArea");
+    area.innerHTML = `
+        <div style="font-size:18px; margin-bottom:10px; color:#fbbf24;">🛒 Торговец</div>
+        <div class="answers" style="grid-template-columns: 1fr;">
+            <button onclick="buy(50, 'h1')" ${coins < 50 || lives >= maxBaseLives ? 'disabled' : ''}>🩹 +1 Жизнь (50)</button>
+            <button onclick="buy(200, 'ex')" ${coins < 200 ? 'disabled' : ''}>💛 Броня + Хил (200)</button>
+            <button onclick="finishRoom()" style="background:#475569">Уйти</button>
+        </div>`;
+}
+
+window.buy = (price, type) => {
+    if (coins < price) return;
+    coins -= price;
+    if (type === 'h1') lives = Math.min(lives + 1, maxBaseLives);
+    if (type === 'ex') { lives = maxBaseLives; extraLives++; }
+    updateUI(); visitMerchant();
+};
+
+function showSimplePopup(title, text, btn) {
+    const h = document.getElementById("popupHolder");
+    h.innerHTML = `<div class="popup"><div class="popupBox"><h2>${title}</h2><p>${text}</p><button onclick="this.closest('.popup').remove(); finishRoom();">${btn}</button></div></div>`;
+}
+
+function showBossVictory() {
+    const h = document.getElementById("popupHolder");
+    h.innerHTML = `<div class="popup"><div class="popupBox"><h1 style="color:#fbbf24;">🏆 ПОБЕДА!</h1><p>Этаж зачищен!</p><button onclick="nextFloor()">Спуститься ниже</button></div></div>`;
+}
+
+function nextFloor() { level++; document.getElementById("popupHolder").innerHTML = ""; generateMap(); updateUI(); saveGame(); }
+
+function showMenu() {
+    const h = document.getElementById("popupHolder");
+    h.innerHTML = `<div class="popup"><div class="popupBox">
+        <h2 style="margin-top:0">ПАУЗА</h2>
+        <button onclick="this.closest('.popup').remove()" style="margin-bottom:10px;">Продолжить</button>
+        <button onclick="showSettings()" style="margin-bottom:10px; background:#475569;">⚙️ Настройки</button>
+        <button onclick="showLeaderboard()" style="margin-bottom:10px; background:#fbbf24; color:#000;">🏆 Лидеры</button>
+        <button onclick="restartGame()" style="background:#ef4444;">Начать заново</button>
+    </div></div>`;
+}
+
+function showSettings() {
+    const h = document.getElementById("popupHolder");
+    h.innerHTML = `<div class="popup"><div class="popupBox">
+        <h2>НАСТРОЙКИ</h2>
+        <div style="margin: 20px 0; display: flex; justify-content: space-between; align-items: center;">
+            <span>Вибрация</span>
+            <button onclick="toggleVibration()" style="width: 100px; background: ${settings.vibration ? '#10b981' : '#ef4444'}">
+                ${settings.vibration ? 'ВКЛ' : 'ВЫКЛ'}
+            </button>
+        </div>
+        <button onclick="showMenu()">Назад</button>
+    </div></div>`;
+}
+
+function toggleVibration() {
+    settings.vibration = !settings.vibration;
+    localStorage.setItem('ed_settings', JSON.stringify(settings));
+    showSettings(); // Перерисовать
+}
+
+function showLeaderboard() {
+    const scores = JSON.parse(localStorage.getItem('ed_scores') || '[]');
+    const h = document.getElementById("popupHolder");
+    let rows = scores.map(s => `
+        <div class="score-row">
+            <span>${s.emoji} <b>${s.name}</b></span>
+            <span>Ур. ${s.level} | 💰 ${s.coins}</span>
+        </div>`).join('');
+    
+    // Если жизней 0, значит мы попали сюда после Game Over, кнопка должна перезапускать игру
+    const btnText = lives <= 0 ? "ИГРАТЬ ЗАНОВО" : "ЗАКРЫТЬ";
+    const btnAction = lives <= 0 ? "restartGame()" : "this.closest('.popup').remove()";
+
+    h.innerHTML = `<div class="popup"><div class="popupBox">
+        <h2 style="color:#fbbf24">ТАБЛИЦА ЛИДЕРОВ</h2>
+        <div style="margin-bottom:15px; max-height:250px; overflow-y:auto;">${rows || 'Пока нет записей'}</div>
+        <button onclick="${btnAction}">${btnText}</button>
+    </div></div>`;
+}
+
+function restartGame() { localStorage.removeItem('ed_save'); location.reload(); }
+
+function showGameOver() {
+    const h = document.getElementById("popupHolder");
+    h.innerHTML = `<div class="popup"><div class="popupBox">
+        <h1 style="color:#ef4444;">ТЫ ПОГИБ</h1>
+        <div style="background:#0f172a; padding:15px; border-radius:15px; font-size:14px; margin-bottom:15px; text-align:left;">
+            Этаж: ${level}<br>Золото: ${coins}<br>Верно: ${stats.correct}
+        </div>
+        <input type="text" id="playerName" placeholder="Твое имя" maxlength="12">
+        <button onclick="saveAndShowScores()">Сохранить результат</button>
+    </div></div>`;
+}
+
+function saveAndShowScores() {
+    const name = document.getElementById("playerName").value || "Аноним";
+    let scores = JSON.parse(localStorage.getItem('ed_scores') || '[]');
+    scores.push({ emoji: playerEmoji, name, level, kills: stats.kills, coins: coins });
+    scores.sort((a, b) => b.level - a.level || b.coins - a.coins);
+    localStorage.setItem('ed_scores', JSON.stringify(scores.slice(0, 10)));
+    localStorage.removeItem('ed_save');
+    showLeaderboard(); // Теперь показываем таблицу вместо перезагрузки
+}
+</script>
+</body>
+</html>
