@@ -134,6 +134,7 @@ let stats = { kills: 0, correct: 0, wrong: 0 };
 let map = [], connections = {}, available = [], currentNode = null, heroPos = "0-0", playerEmoji = "🤠";
 let enemyQuestions = 0, isBossNode = false;
 let usedQuestions = new Set();
+let mistakesStack = []; // Хранилище уникальных ошибок на весь забег
 
 window.onload = () => {
     if (localStorage.getItem('ed_save')) loadGame();
@@ -141,13 +142,16 @@ window.onload = () => {
 };
 
 function saveGame() {
-    const saveData = { level, lives, maxBaseLives, extraLives, coins, stats, map, connections, available, currentNode, heroPos, playerEmoji };
+    const saveData = { level, lives, maxBaseLives, extraLives, coins, stats, map, connections, available, currentNode, heroPos, playerEmoji, mistakesStack };
     localStorage.setItem('ed_save', JSON.stringify(saveData));
 }
 
 function loadGame() {
     const data = JSON.parse(localStorage.getItem('ed_save'));
     Object.assign(window, data);
+    if (!window.mistakesStack) {
+        window.mistakesStack = [];
+    }
     document.getElementById("heroIcon").textContent = playerEmoji;
     document.getElementById("playerSprite").textContent = playerEmoji;
     updateUI();
@@ -244,7 +248,6 @@ function enterRoom(key) {
     document.getElementById("enemySide").style.visibility = "hidden";
     document.getElementById("battleDivider").style.visibility = "hidden";
     isBossNode = (node.type === "exit");
-    usedQuestions.clear();
     if (node.type === "start") finishRoom();
     else if (node.type === "enemy" || isBossNode) startBattle();
     else if (node.type === "chest") openChest();
@@ -254,49 +257,94 @@ function enterRoom(key) {
 }
 
 function startBattle() {
+    const node = map[heroPos.split("-")[0]][heroPos.split("-")[1]];
+    isBossNode = (node.type === "exit");
+    
+    // ЛОГИКА ВАМПИРА: если ошибок 4+ и шанс 80%, или если это обычный бой
+    let enemyEmoji = isBossNode ? "🐲" : "👹";
     enemyQuestions = isBossNode ? 6 : 3;
+
+    if (!isBossNode && mistakesStack.length >= 4 && Math.random() < 0.8) {
+        enemyEmoji = Math.random() > 0.5 ? "🧛‍♂️" : "🧛‍♀️";
+        enemyQuestions = 4; // У вампира всегда 4 жизни
+    }
+
     document.getElementById("enemySide").style.visibility = "visible";
     document.getElementById("battleDivider").style.visibility = "visible";
-    document.getElementById("enemySprite").textContent = isBossNode ? "🐲" : "👹";
+    document.getElementById("enemySprite").textContent = enemyEmoji;
+    
     updateUI();
     nextBattleQuestion();
 }
 
 function nextBattleQuestion() {
-    let type = Math.floor(Math.random() * 3);
-    let qText = "", qTitle = "", correctAnswer = "", answers = [], qUID = "";
-    for(let i=0; i<30; i++) {
-        if (type === 0) {
-            const keys = Object.keys(tasksDB.verbs);
-            const verbKey = keys[Math.floor(Math.random() * keys.length)];
-            const isV3 = Math.random() > 0.5;
-            correctAnswer = isV3 ? tasksDB.verbs[verbKey].v3 : tasksDB.verbs[verbKey].v2;
-            qUID = "v_" + verbKey + (isV3 ? "3" : "2");
-            if (!usedQuestions.has(qUID)) {
-                qTitle = isV3 ? "Form V3:" : "Form V2:"; qText = verbKey.toUpperCase();
-                answers = isV3 ? tasksDB.verbs[verbKey].optionsV3 : tasksDB.verbs[verbKey].optionsV2; break;
-            }
-        } else if (type === 1) {
-            const idx = Math.floor(Math.random() * tasksDB.sentences.length);
-            qUID = "s_" + idx;
-            if (!usedQuestions.has(qUID)) {
-                qTitle = "Fill in:"; qText = tasksDB.sentences[idx].text.replace("___", "_____");
-                correctAnswer = tasksDB.sentences[idx].answer; answers = tasksDB.sentences[idx].options; break;
-            }
-        } else {
-            const idx = Math.floor(Math.random() * tasksDB.dialogues.length);
-            qUID = "d_" + idx;
-            if (!usedQuestions.has(qUID)) {
-                qTitle = "Response:"; qText = tasksDB.dialogues[idx].q;
-                correctAnswer = tasksDB.dialogues[idx].answer; answers = tasksDB.dialogues[idx].options; break;
-            }
-        }
-        type = (type + 1) % 3;
+    let qUID = "";
+    let isVampire = false;
+
+    // Проверяем, не вампир ли перед нами (определяется в начале битвы или по спрайту)
+    const currentEmoji = document.getElementById("enemySprite").textContent;
+    if (currentEmoji === "🧛‍♂️" || currentEmoji === "🧛‍♀️") {
+        isVampire = true;
     }
-    usedQuestions.add(qUID);
+
+    let qText = "", qTitle = "", correctAnswer = "", answers = [];
+
+    // ЛОГИКА ВЫБОРА ВОПРОСА
+    if (isVampire && mistakesStack.length > 0) {
+        // Берем случайный ID из стека ошибок
+        qUID = mistakesStack[Math.floor(Math.random() * mistakesStack.length)];
+        const task = getTaskById(qUID); // Вспомогательная функция ниже
+        qTitle = task.title;
+        qText = task.text;
+        correctAnswer = task.correct;
+        answers = task.options;
+    } else {
+        // Стандартная логика генерации (твой исходный код)
+        const totalVerbs = Object.keys(tasksDB.verbs).length * 2;
+        const totalSentences = tasksDB.sentences.length;
+        const totalDialogs = tasksDB.dialogues ? tasksDB.dialogues.length : 0;
+        const totalLimit = totalVerbs + totalSentences + totalDialogs;
+
+        if (usedQuestions.size >= totalLimit) usedQuestions.clear();
+
+        let type = Math.floor(Math.random() * 3);
+        for(let i=0; i<30; i++) {
+            if (type === 0) {
+                const keys = Object.keys(tasksDB.verbs);
+                const verbKey = keys[Math.floor(Math.random() * keys.length)];
+                const isV3 = Math.random() > 0.5;
+                correctAnswer = isV3 ? tasksDB.verbs[verbKey].v3 : tasksDB.verbs[verbKey].v2;
+                qUID = "v_" + verbKey + (isV3 ? "3" : "2");
+                if (!usedQuestions.has(qUID)) {
+                    qTitle = isV3 ? "Form V3:" : "Form V2:"; qText = verbKey.toUpperCase();
+                    answers = isV3 ? tasksDB.verbs[verbKey].optionsV3 : tasksDB.verbs[verbKey].optionsV2; break;
+                }
+            } else if (type === 1) {
+                const idx = Math.floor(Math.random() * tasksDB.sentences.length);
+                qUID = "s_" + idx;
+                if (!usedQuestions.has(qUID)) {
+                    qTitle = "Fill in:"; qText = tasksDB.sentences[idx].text.replace("___", "_____");
+                    correctAnswer = tasksDB.sentences[idx].answer; answers = tasksDB.sentences[idx].options; break;
+                }
+            } else {
+                const idx = Math.floor(Math.random() * tasksDB.dialogues.length);
+                qUID = "d_" + idx;
+                if (!usedQuestions.has(qUID)) {
+                    qTitle = "Response:"; qText = tasksDB.dialogues[idx].q;
+                    correctAnswer = tasksDB.dialogues[idx].answer; answers = tasksDB.dialogues[idx].options; break;
+                }
+            }
+            type = (type + 1) % 3;
+        }
+        usedQuestions.add(qUID);
+    }
+
     const area = document.getElementById("interactionArea");
+    area.dataset.qid = qUID; // Сохраняем ID в DOM, чтобы handleBattleAnswer его увидел
     area.innerHTML = `
-        <div style="font-size:11px; color:${isBossNode ? '#ef4444' : '#38bdf8'}; font-weight:bold; margin-bottom:5px;">${isBossNode ? 'BOSS BATTLE' : 'ENCOUNTER'}</div>
+        <div style="font-size:11px; color:${isVampire ? '#e879f9' : (isBossNode ? '#ef4444' : '#38bdf8')}; font-weight:bold; margin-bottom:5px;">
+            ${isVampire ? 'VAMPIRE (REVIEW)' : (isBossNode ? 'BOSS BATTLE' : 'ENCOUNTER')}
+        </div>
         <div style="font-size:14px; opacity:0.8;">${qTitle}</div>
         <div style="font-size:20px; color:#fbbf24; margin:10px 0; font-weight:bold;">${qText}</div>
         <div class="answers"></div>`;
@@ -308,18 +356,52 @@ function nextBattleQuestion() {
     });
 }
 
+// Вспомогательная функция для получения данных вопроса по его строковому ID
+function getTaskById(uid) {
+    if (uid.startsWith("v_")) {
+        const isV3 = uid.endsWith("3");
+        const verbKey = uid.substring(2, uid.length - 1);
+        const vData = tasksDB.verbs[verbKey];
+        return {
+            title: isV3 ? "Form V3:" : "Form V2:",
+            text: verbKey.toUpperCase(),
+            correct: isV3 ? vData.v3 : vData.v2,
+            options: isV3 ? vData.optionsV3 : vData.optionsV2
+        };
+    } else if (uid.startsWith("s_")) {
+        const idx = parseInt(uid.split("_")[1]);
+        const sData = tasksDB.sentences[idx];
+        return { title: "Fill in:", text: sData.text.replace("___", "_____"), correct: sData.answer, options: sData.options };
+    } else if (uid.startsWith("d_")) {
+        const idx = parseInt(uid.split("_")[1]);
+        const dData = tasksDB.dialogues[idx];
+        return { title: "Response:", text: dData.q, correct: dData.answer, options: dData.options };
+    }
+}
+
 function handleBattleAnswer(btn, isCorrect) {
     document.querySelectorAll(".answers button").forEach(b => b.disabled = true);
+    
+    // Получаем текущий ID вопроса из данных на экране (добавим его при генерации)
+    const currentQid = document.getElementById("interactionArea").dataset.qid;
+
     if (isCorrect) {
-        stats.correct++; enemyQuestions--;
+        stats.correct++; 
+        enemyQuestions--;
         btn.style.background = "#10b981";
         document.getElementById("enemySprite").classList.add("shake-anim");
         
+        // НОВАЯ ЛОГИКА: Если бьемся с вампиром, удаляем ошибку из стека
+        if (document.getElementById("enemySprite").textContent === "🧛‍♂️" || 
+            document.getElementById("enemySprite").textContent === "🧛‍♀️") {
+            mistakesStack = mistakesStack.filter(id => id !== currentQid);
+        }
+
         if(enemyQuestions <= 0) {
             stats.kills++; 
             const gain = isBossNode ? 200 : 50;
             coins += gain;
-            updateUI(); // Обновляем счетчик сразу!
+            updateUI();
             setTimeout(() => {
                 document.getElementById("enemySprite").classList.remove("shake-anim");
                 if(isBossNode) showBossVictory();
@@ -333,8 +415,14 @@ function handleBattleAnswer(btn, isCorrect) {
             }, 500);
         }
     } else {
-        stats.wrong++; btn.style.background = "#ef4444";
+        stats.wrong++; 
+        btn.style.background = "#ef4444";
         showFlash();
+
+        // СОХРАНЕНИЕ ОШИБКИ: добавляем в стек, если еще нет такого ID
+        if (!mistakesStack.includes(currentQid)) {
+            mistakesStack.push(currentQid);
+        }
 
         if (extraLives > 0) extraLives--; else lives--;
         document.getElementById("playerSprite").classList.add("shake-anim");
@@ -405,10 +493,17 @@ function showSimplePopup(title, text, btn) {
 
 function showBossVictory() {
     const h = document.getElementById("popupHolder");
-    h.innerHTML = `<div class="popup"><div class="popupBox"><h1 style="color:#fbbf24;">🏆 ПОБЕДА!</h1><p>Этаж зачищен!</p><button onclick="nextFloor()">Спуститься ниже</button></div></div>`;
+    h.innerHTML = `<div class="popup"><div class="popupBox"><h1 style="color:#fbbf24;">🏆<br/>ПОБЕДА!</h1><p>Этаж зачищен!</p><button onclick="nextFloor()">Спуститься ниже</button></div></div>`;
 }
 
-function nextFloor() { level++; document.getElementById("popupHolder").innerHTML = ""; generateMap(); updateUI(); saveGame(); }
+function nextFloor() {
+    level++;
+    usedQuestions.clear();
+    document.getElementById("popupHolder").innerHTML = "";
+    generateMap();
+    updateUI();
+    saveGame();
+}
 
 function showMenu() {
     const h = document.getElementById("popupHolder");
