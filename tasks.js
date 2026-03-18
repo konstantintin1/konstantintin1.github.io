@@ -65,7 +65,6 @@ const tasksDB = {
         "study": { v2: "studied", v3: "studied", translate: "изучать, исследовать", optionsV2: ["studied", "studyed", "studed", "studies"], optionsV3: ["studied", "studyed", "studed", "studies"] },
         "stay": { v2: "stayed", v3: "stayed", translate: "оставаться, гостить", optionsV2: ["stayed", "staid", "stayd", "steyed"], optionsV3: ["stayed", "staid", "stayd", "steyed"] },
         "want": { v2: "wanted", v3: "wanted", translate: "хотеть, желать", optionsV2: ["wanted", "wantet", "wantied", "want"], optionsV3: ["wanted", "wantet", "wantied", "want"] },
-        "learn": { v2: "learnt / learned", v3: "learnt / learned", translate: "учить(ся)", optionsV2: ["learnt / learned", "learned / learnt", "learneded", "learnd"], optionsV3: ["learnt / learned", "learned / learnt", "learnd", "learneded"] },
         "work": { v2: "worked", v3: "worked", translate: "работать", optionsV2: ["worked", "wrought", "workt", "work"], optionsV3: ["worked", "wrought", "workt", "work"] },
         "try": { v2: "tried", v3: "tried", translate: "пытаться", optionsV2: ["tried", "tryed", "trien", "trieded"], optionsV3: ["tried", "tryed", "trien", "trieded"] },
         "talk": { v2: "talked", v3: "talked", translate: "разговаривать, болтать", optionsV2: ["talked", "talkt", "talkedr", "talke"], optionsV3: ["talked", "talkt", "talkedr", "talke"] },
