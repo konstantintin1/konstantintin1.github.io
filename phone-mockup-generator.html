@@ -727,6 +727,16 @@
       if (!itemColor.asset) return;
       itemColor.frameImage = new Image();
       itemColor.frameImage.addEventListener('load', render);
+      itemColor.frameImage.addEventListener('error', () => {
+        if (device() !== item || itemColor !== color()) return;
+        state.deviceIndex = 0;
+        state.colorIndex = 0;
+        localStorage.setItem('mockup-device', device().id);
+        buildDeviceSelect();
+        buildSwatches();
+        render();
+        showToast('Frame image is unavailable');
+      });
       itemColor.frameImage.src = itemColor.asset;
     }));
 
