@@ -624,9 +624,13 @@
           }
           const url = URL.createObjectURL(blob);
           const link = document.createElement('a');
-          const source = state.fileName.replace(/\.[^.]+$/, '').replace(/[^a-z0-9_-]+/gi, '-');
+          const colorName = {
+            'cosmic-orange': 'orange',
+            'deep-blue': 'blue',
+            silver: 'silver'
+          }[color().id] || color().id;
           link.href = url;
-          link.download = `${source || 'screen'}-${d.id}-${color().id}.png`;
+          link.download = `iphone17-${colorName}.png`;
           document.body.appendChild(link);
           link.click();
           link.remove();
