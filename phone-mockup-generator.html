@@ -267,6 +267,7 @@
 
     canvas.can-move { cursor: grab; }
     canvas.can-move:active { cursor: grabbing; }
+    canvas.upload-prompt { cursor: pointer; }
 
     .empty {
       position: absolute;
@@ -557,6 +558,7 @@
       }
       drawDevice(ctx, d);
       preview.classList.toggle('can-move', Boolean(state.image && state.mode === 'cover'));
+      preview.classList.toggle('upload-prompt', !state.image);
       $('emptyState').classList.toggle('hidden', Boolean(state.image));
       const frameReady = device().frameType !== 'image' || Boolean(color().frameImage?.complete && color().frameImage.naturalWidth);
       $('downloadButton').disabled = !state.image || !frameReady;
@@ -668,6 +670,10 @@
     });
 
     $('fileInput').addEventListener('change', event => loadFile(event.target.files[0]));
+
+    preview.addEventListener('click', () => {
+      if (!state.image) $('fileInput').click();
+    });
 
     $('modeSegment').addEventListener('click', event => {
       const button = event.target.closest('[data-mode]');
