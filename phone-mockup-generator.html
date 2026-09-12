@@ -4,319 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Phone Mockup Generator</title>
-  <style>
-    :root {
-      color-scheme: dark;
-      --bg: #151414;
-      --panel: #201f1f;
-      transition: background-color .15s ease;
-      --line: #3a3838;
-      --text: #f5f4f2;
-      --muted: #aaa6a3;
-      --accent: #ffffff;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font: 14px/1.4 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-
-    button, select, input { font: inherit; }
-    button, select { color: inherit; }
-
-    button:focus-visible, select:focus-visible, input:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: 2px;
-    }
-
-    .app {
-      min-height: 100vh;
-      display: grid;
-      grid-template-columns: 320px minmax(0, 1fr);
-    }
-
-    .sidebar {
-      padding: 24px;
-      border-right: 1px solid var(--line);
-      background: #1a1919;
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-      overflow: auto;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .brand h1 {
-      margin: 0;
-      font-size: 17px;
-      letter-spacing: -.02em;
-    }
-
-    .section { display: grid; gap: 11px; }
-
-    .device-section { display: none; }
-
-    .label-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .label {
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    select, .secondary, .segment, .upload-button {
-      border: 1px solid var(--line);
-      background: var(--panel-2);
-      border-radius: 10px;
-    }
-
-    .select-wrap {
-      position: relative;
-    }
-
-    .select-wrap::after {
-      content: "";
-      position: absolute;
-      top: 50%;
-      right: 15px;
-      width: 7px;
-      height: 7px;
-      border-right: 1.5px solid var(--muted);
-      border-bottom: 1.5px solid var(--muted);
-      transform: translateY(-65%) rotate(45deg);
-      pointer-events: none;
-    }
-
-    select {
-      width: 100%;
-      appearance: none;
-      padding: 11px 40px 11px 12px;
-      color: var(--text);
-      background-color: #2c2b2b !important;
-      color-scheme: dark;
-      cursor: pointer;
-    }
-
-    option {
-      color: var(--text);
-      background-color: #2c2b2b !important;
-    }
-
-    .swatches { display: flex; flex-wrap: wrap; gap: 9px; }
-
-    .swatch {
-      width: 34px;
-      height: 34px;
-      padding: 3px;
-      border: 2px solid transparent;
-      border-radius: 50%;
-      background: transparent;
-      cursor: pointer;
-    }
-
-    .swatch::before {
-      content: "";
-      display: block;
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      background: var(--color);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.22);
-    }
-
-    .swatch.active { border-color: var(--accent); }
-
-    .segment {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      padding: 3px;
-    }
-
-    .segment button {
-      border: 0;
-      border-radius: 7px;
-      padding: 9px 8px;
-      background: transparent;
-      color: var(--muted);
-      cursor: pointer;
-    }
-
-    .segment button.active {
-      color: var(--text);
-      background: #454242;
-    }
-
-    input[type="range"] {
-      width: 100%;
-      accent-color: var(--accent);
-      cursor: pointer;
-    }
-
-    .secondary, .upload-button {
-      min-height: 42px;
-      padding: 10px 12px;
-      cursor: pointer;
-      text-align: center;
-    }
-
-    .secondary:hover, .upload-button:hover { border-color: #5b5858; }
-
-    .upload-button {
-      display: grid;
-      place-items: center;
-      width: 100%;
-    }
-
-    .upload-button input { display: none; }
-
-    .download {
-      min-height: 48px;
-      margin-top: auto;
-      border: 0;
-      border-radius: 12px;
-      background: var(--accent);
-      color: #171717;
-      font-weight: 750;
-      cursor: pointer;
-      transition: background-color .15s ease;
-    }
-
-    .download:hover:not(:disabled) {
-      background: #e1e1e1;
-    }
-
-    .download:active:not(:disabled) {
-      background: #c8c8c8;
-    }
-
-    .download:disabled, .secondary:disabled {
-      opacity: .38;
-      cursor: not-allowed;
-    }
-
-    .hint { margin: -3px 0 0; color: var(--muted); font-size: 12px; }
-
-    .workspace {
-      min-width: 0;
-      min-height: 100vh;
-      display: grid;
-      grid-template-rows: minmax(0, 1fr);
-    }
-
-    .stage {
-      position: relative;
-      min-height: 560px;
-      padding: 34px;
-      display: grid;
-      place-items: center;
-      overflow: hidden;
-      background-color: #181717;
-      background-image:
-        linear-gradient(45deg, #1e1d1d 25%, transparent 25%),
-        linear-gradient(-45deg, #1e1d1d 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, #1e1d1d 75%),
-        linear-gradient(-45deg, transparent 75%, #1e1d1d 75%);
-      background-size: 28px 28px;
-      background-position: 0 0, 0 14px, 14px -14px, -14px 0;
-    }
-
-    .stage.dragover::after {
-      content: "Drop image here";
-      position: absolute;
-      inset: 20px;
-      z-index: 4;
-      display: grid;
-      place-items: center;
-      border: 2px dashed var(--accent);
-      border-radius: 18px;
-      background: rgba(21,20,20,.88);
-      color: var(--accent);
-      font-size: 18px;
-      font-weight: 700;
-    }
-
-    .canvas-wrap {
-      position: relative;
-      height: min(78vh, 760px);
-      max-width: 100%;
-      filter: drop-shadow(0 28px 42px rgba(0,0,0,.38));
-    }
-
-    canvas {
-      display: block;
-      height: 100%;
-      max-width: 100%;
-      width: auto;
-      touch-action: none;
-      user-select: none;
-    }
-
-    canvas.can-move { cursor: grab; }
-    canvas.can-move:active { cursor: grabbing; }
-    canvas.upload-prompt { cursor: pointer; }
-
-    .empty {
-      position: absolute;
-      z-index: 3;
-      display: grid;
-      justify-items: center;
-      gap: 8px;
-      pointer-events: none;
-      text-align: center;
-      color: #fff;
-    }
-
-    .empty strong { font-size: 16px; }
-    .empty span { color: #b8b4b1; font-size: 12px; }
-    .empty.hidden { display: none; }
-
-    .toast {
-      position: fixed;
-      right: 20px;
-      bottom: 20px;
-      z-index: 10;
-      padding: 11px 14px;
-      border-radius: 10px;
-      background: #f4f3ef;
-      color: #191818;
-      box-shadow: 0 16px 50px rgba(0,0,0,.35);
-      transform: translateY(16px);
-      opacity: 0;
-      pointer-events: none;
-      transition: .2s ease;
-    }
-
-    .toast.show { transform: none; opacity: 1; }
-
-    @media (max-width: 760px) {
-      .app { grid-template-columns: 1fr; }
-      .sidebar { border-right: 0; border-bottom: 1px solid var(--line); }
-      .workspace { min-height: 620px; }
-      .stage { min-height: 520px; padding: 24px; }
-      .canvas-wrap { height: 520px; }
-      .output-info { display: none; }
-    }
-  </style>
+  <link rel="stylesheet" href="phone-mockup-generator.css">
 </head>
 <body>
   <main class="app">
     <aside class="sidebar">
       <div class="brand">
         <h1>Phone Mockup</h1>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch theme">
+          <span class="theme-icon theme-icon-light" aria-hidden="true">
+            <img src="icons/light_mode.svg" alt="">
+          </span>
+          <span class="theme-icon theme-icon-dark" aria-hidden="true">
+            <img src="icons/dark_mode.svg" alt="">
+          </span>
+          <span class="theme-toggle-thumb" aria-hidden="true"></span>
+        </button>
       </div>
 
       <section class="section device-section" hidden>
@@ -404,6 +107,20 @@
     const $ = id => document.getElementById(id);
     const preview = $('preview');
     const ctx = preview.getContext('2d');
+    const themeToggle = $('themeToggle');
+    const savedTheme = localStorage.getItem('mockup-theme');
+    const systemTheme = () => matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    const currentTheme = () => document.documentElement.dataset.theme || systemTheme();
+
+    function updateThemeToggle() {
+      const theme = currentTheme();
+      const isLight = theme === 'light';
+      themeToggle.setAttribute('aria-label', isLight ? 'Switch to dark theme' : 'Switch to light theme');
+      themeToggle.setAttribute('aria-pressed', String(isLight));
+    }
+
+    document.documentElement.dataset.theme = savedTheme || '';
+    updateThemeToggle();
     const state = {
       deviceIndex: Math.max(0, DEVICES.findIndex(d => d.id === localStorage.getItem('mockup-device'))),
       colorIndex: 0,
@@ -419,6 +136,17 @@
 
     function device() { return DEVICES[state.deviceIndex]; }
     function color() { return device().colors[state.colorIndex] || device().colors[0]; }
+
+    themeToggle.addEventListener('click', () => {
+      const nextTheme = currentTheme() === 'light' ? 'dark' : 'light';
+      document.documentElement.dataset.theme = nextTheme;
+      localStorage.setItem('mockup-theme', nextTheme);
+      updateThemeToggle();
+    });
+
+    matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+      if (!localStorage.getItem('mockup-theme')) updateThemeToggle();
+    });
 
     function roundedRect(context, x, y, width, height, radius) {
       const r = Math.min(radius, width / 2, height / 2);
