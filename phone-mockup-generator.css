@@ -278,6 +278,10 @@ option {
   background: var(--control-active);
 }
 
+.segment button[data-device] {
+  font-variant-numeric: tabular-nums;
+}
+
 input[type="range"] {
   width: 100%;
   accent-color: var(--accent);

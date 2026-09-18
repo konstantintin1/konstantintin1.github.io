@@ -30,6 +30,14 @@
       </section>
 
       <section class="section">
+        <span class="label">iPhone</span>
+        <div class="segment" id="iphoneSegment">
+          <button type="button" data-device="iphone-17-pro-max">17 Pro Max</button>
+          <button type="button" data-device="iphone-18-pro-max" class="active">18 Pro Max</button>
+        </div>
+      </section>
+
+      <section class="section">
         <span class="label">Frame color</span>
         <div class="swatches" id="swatches"></div>
       </section>
@@ -88,6 +96,21 @@
         ]
       },
       {
+        id: 'iphone-18-pro-max',
+        name: 'iPhone 18 Pro Max',
+        width: 942,
+        height: 1921,
+        bodyRadius: 144,
+        frameType: 'image',
+        screen: { x: 46, y: 40, width: 850, height: 1841, radius: 103 },
+        colors: [
+          { id: 'burgundy', name: 'Burgundy', value: '#682F3A', edge: '#682F3A', asset: 'phones/iphone-18-pro-max__burgundy.png' },
+          { id: 'black', name: 'Black', value: '#181818', edge: '#181818', asset: 'phones/iphone-18-pro-max__black.png' },
+          { id: 'glacier', name: 'Glacier', value: '#B9C5CE', edge: '#B9C5CE', asset: 'phones/iphone-18-pro-glacier.png' },
+          { id: 'silver', name: 'Silver', value: '#C9C8C4', edge: '#C9C8C4', asset: 'phones/iphone-18-pro-max__silver.png' }
+        ]
+      },
+      {
         id: 'google-pixel-11-pro',
         name: 'Google Pixel 11 Pro',
         width: 946,
@@ -121,9 +144,14 @@
 
     document.documentElement.dataset.theme = savedTheme || '';
     updateThemeToggle();
+    const initialDeviceIndex = Math.max(0, DEVICES.findIndex(d => d.id === localStorage.getItem('mockup-device') || d.id === 'iphone-18-pro-max'));
+    const initialDevice = DEVICES[initialDeviceIndex];
+    const savedColorId = localStorage.getItem(`mockup-color-${initialDevice.id}`);
+    const initialColorIndex = Math.max(0, initialDevice.colors.findIndex(item => item.id === savedColorId));
+
     const state = {
-      deviceIndex: Math.max(0, DEVICES.findIndex(d => d.id === localStorage.getItem('mockup-device'))),
-      colorIndex: 0,
+      deviceIndex: initialDeviceIndex,
+      colorIndex: savedColorId ? initialColorIndex : (initialDevice.id === 'iphone-18-pro-max' ? 1 : 0),
       image: null,
       fileName: '',
       mode: 'cover',
@@ -357,10 +385,13 @@
           const colorName = {
             'cosmic-orange': 'orange',
             'deep-blue': 'blue',
-            silver: 'silver'
+            silver: 'silver',
+            black: 'black',
+            burgundy: 'burgundy',
+            glacier: 'glacier'
           }[color().id] || color().id;
           link.href = url;
-          link.download = `iphone17-${colorName}.png`;
+          link.download = `${device().id}-${colorName}.png`;
           document.body.appendChild(link);
           link.click();
           link.remove();
@@ -383,8 +414,24 @@
 
     $('deviceSelect').addEventListener('change', event => {
       state.deviceIndex = Number(event.target.value);
-      state.colorIndex = 0;
+      const savedColorId = localStorage.getItem(`mockup-color-${device().id}`);
+      state.colorIndex = savedColorId ? Math.max(0, device().colors.findIndex(item => item.id === savedColorId)) : (device().id === 'iphone-18-pro-max' ? 1 : 0);
       localStorage.setItem('mockup-device', device().id);
+      buildSwatches();
+      resetPosition();
+    });
+
+    $('iphoneSegment').addEventListener('click', event => {
+      const button = event.target.closest('[data-device]');
+      if (!button) return;
+      const nextIndex = DEVICES.findIndex(item => item.id === button.dataset.device);
+      if (nextIndex < 0) return;
+      state.deviceIndex = nextIndex;
+      const savedColorId = localStorage.getItem(`mockup-color-${device().id}`);
+      state.colorIndex = savedColorId ? Math.max(0, device().colors.findIndex(item => item.id === savedColorId)) : (device().id === 'iphone-18-pro-max' ? 1 : 0);
+      localStorage.setItem('mockup-device', device().id);
+      $('iphoneSegment').querySelectorAll('button').forEach(item => item.classList.toggle('active', item === button));
+      buildDeviceSelect();
       buildSwatches();
       resetPosition();
     });
@@ -393,6 +440,7 @@
       const button = event.target.closest('.swatch');
       if (!button) return;
       state.colorIndex = Number(button.dataset.index);
+      localStorage.setItem(`mockup-color-${device().id}`, color().id);
       buildSwatches();
       render();
     });
