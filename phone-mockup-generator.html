@@ -144,14 +144,14 @@
 
     document.documentElement.dataset.theme = savedTheme || '';
     updateThemeToggle();
-    const initialDeviceIndex = Math.max(0, DEVICES.findIndex(d => d.id === localStorage.getItem('mockup-device') || d.id === 'iphone-18-pro-max'));
+    const initialDeviceIndex = Math.max(0, DEVICES.findIndex(d => d.id === (localStorage.getItem('mockup-device') || 'iphone-18-pro-max')));
     const initialDevice = DEVICES[initialDeviceIndex];
     const savedColorId = localStorage.getItem(`mockup-color-${initialDevice.id}`);
     const initialColorIndex = Math.max(0, initialDevice.colors.findIndex(item => item.id === savedColorId));
 
     const state = {
       deviceIndex: initialDeviceIndex,
-      colorIndex: savedColorId ? initialColorIndex : (initialDevice.id === 'iphone-18-pro-max' ? 1 : 0),
+      colorIndex: savedColorId ? initialColorIndex : 0,
       image: null,
       fileName: '',
       mode: 'cover',
@@ -325,6 +325,9 @@
         `<option value="${index}">${d.name}</option>`
       ).join('');
       $('deviceSelect').value = String(state.deviceIndex);
+      $('iphoneSegment').querySelectorAll('button').forEach(button =>
+        button.classList.toggle('active', button.dataset.device === device().id)
+      );
     }
 
     function buildSwatches() {
@@ -415,8 +418,9 @@
     $('deviceSelect').addEventListener('change', event => {
       state.deviceIndex = Number(event.target.value);
       const savedColorId = localStorage.getItem(`mockup-color-${device().id}`);
-      state.colorIndex = savedColorId ? Math.max(0, device().colors.findIndex(item => item.id === savedColorId)) : (device().id === 'iphone-18-pro-max' ? 1 : 0);
+      state.colorIndex = savedColorId ? Math.max(0, device().colors.findIndex(item => item.id === savedColorId)) : 0;
       localStorage.setItem('mockup-device', device().id);
+      buildDeviceSelect();
       buildSwatches();
       resetPosition();
     });
@@ -428,9 +432,8 @@
       if (nextIndex < 0) return;
       state.deviceIndex = nextIndex;
       const savedColorId = localStorage.getItem(`mockup-color-${device().id}`);
-      state.colorIndex = savedColorId ? Math.max(0, device().colors.findIndex(item => item.id === savedColorId)) : (device().id === 'iphone-18-pro-max' ? 1 : 0);
+      state.colorIndex = savedColorId ? Math.max(0, device().colors.findIndex(item => item.id === savedColorId)) : 0;
       localStorage.setItem('mockup-device', device().id);
-      $('iphoneSegment').querySelectorAll('button').forEach(item => item.classList.toggle('active', item === button));
       buildDeviceSelect();
       buildSwatches();
       resetPosition();
